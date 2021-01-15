@@ -1,16 +1,18 @@
-from tensorflow.python.platform import gfile
-import tensorflow as tf
 import os
-import cv2
-from config import *
-from timeit import default_timer as timer
-from utiles.iouEval import iouEval
-from tqdm import tqdm
-from utiles.utils import concatImage
 import time
-from data_manager import DataManager
-from tensorflow.python.client import timeline
+from timeit import default_timer as timer
+
+import cv2
 import numpy as np
+import tensorflow as tf
+from tensorflow.python.client import timeline
+from tensorflow.python.platform import gfile
+from tqdm import tqdm
+
+from config import *
+from data_manager import DataManager
+from utiles.iouEval import iouEval
+from utiles.utils import concatImage
 
 
 class PbTester(object):

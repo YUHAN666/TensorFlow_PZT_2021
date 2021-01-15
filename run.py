@@ -1,8 +1,9 @@
 import os
-import argparse
+
 from agent import Agent
-from logger import Logger
 from config import DefaultParam
+from logger import Logger
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 

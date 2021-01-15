@@ -1,10 +1,11 @@
 import os
-import numpy as np
+
 import cv2
-from config import *
+import numpy as np
 import tensorflow as tf
 from skimage import exposure
-import pathlib
+
+from config import *
 
 
 class DataManager(object):

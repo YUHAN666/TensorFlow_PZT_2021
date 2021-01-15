@@ -1,10 +1,10 @@
-import tensorflow as tf
-from config import IMAGE_SIZE, DATA_FORMAT, TRAIN_MODE_IN_TRAIN, TRAIN_MODE_IN_VALID
-import numpy as np
-from tqdm import tqdm
-from utiles.iouEval import iouEval
 import time
-import os
+
+import tensorflow as tf
+from tqdm import tqdm
+
+from config import IMAGE_SIZE, DATA_FORMAT, TRAIN_MODE_IN_TRAIN, TRAIN_MODE_IN_VALID
+from utiles.iouEval import iouEval
 
 
 class Trainer(object):

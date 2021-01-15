@@ -1,11 +1,12 @@
 import tensorflow as tf
+
 from data_manager import DataManager
 from model.model import Model
-from trainer import Trainer
-from saver import Saver
-from validator import Validator
 from pb_tester import PbTester
+from saver import Saver
 from tensorboard_manager import TensorboardManager
+from trainer import Trainer
+from validator import Validator
 
 
 class Agent(object):
