@@ -12,7 +12,8 @@ MODE = {0: "train_segmentation",    # 训练模型分割部分
 DefaultParam = {
     "mode": MODE[0],
     "anew": False,                  # 是否需要新建模型，False则新建模型，True则从checkpoint中读取参数
-    "name": "p01",
+    "name": "p08",
+    "balanced_mode": True,  # 是否需要平衡样本
 
     # Model param
     "momentum": 0.9,                # BatchNorm层动量参数
@@ -25,7 +26,16 @@ DefaultParam = {
     "image_root_valid": "./Data/",        # 验证集图片路径
     "mask_root_valid": "./Data/",         # 验证集mask路径
     "extension": ".bmp",                  # mask格式
-    "augmentation": ["adjust_gamma", "flip", "rotate", "GaussianBlur", "shift"],    # 图像增强方法选择
+    # "augmentation": ["adjust_gamma", "flip", "rotate", "GaussianBlur", "shift"],  # 图像增强方法选择
+
+    # ImageAugmentor param
+    "augmentation_method": {"crop": (10, 10),
+                            "rotate": (10, 10),
+                            "blur": True,
+                            "motion": {"k": (3, 20),
+                                       "angle": [0, 90],
+                                       "direction": 0}},
+
 
     # Trainer param
     "optimizer": "Adam",                # 优化器选择  Adam GD RMS

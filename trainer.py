@@ -4,6 +4,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from config import IMAGE_SIZE, DATA_FORMAT, TRAIN_MODE_IN_TRAIN, TRAIN_MODE_IN_VALID
+from model.loss_func.balanced_crossentropy import balanced_crossentropy_with_logits
 from utiles.iouEval import iouEval
 
 
@@ -23,6 +24,7 @@ class Trainer(object):
         self.decay_steps = param["decay_steps"]
         self.staircase = param["stair_case"]
         self.check_seg_frequency = param["check_seg_frequency"]
+        self.balanced_mode = param["balanced_mode"]
         self.logger = logger
         self.tensorboard_manager = tensorboard_manager
 
@@ -103,11 +105,21 @@ class Trainer(object):
                     segmentation_output[nec_index] = tf.transpose(segmentation_output[nec_index], [0, 2, 3, 1])
             logits_pixel = tf.image.resize_images(segmentation_output[0], (IMAGE_SIZE[0], IMAGE_SIZE[1]), align_corners=True,
                                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-            segmentation_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits_pixel, labels=mask)) + \
-                                tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=segmentation_output[1], labels=tf.image.resize_images(mask, (IMAGE_SIZE[0] // 4, IMAGE_SIZE[1] // 4)))) + \
-                                tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=segmentation_output[2], labels=tf.image.resize_images(mask, (IMAGE_SIZE[0] // 8, IMAGE_SIZE[1] // 8)))) + \
-                                tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=segmentation_output[3], labels=tf.image.resize_images(mask, (IMAGE_SIZE[0] // 16, IMAGE_SIZE[1] // 16)))) + \
-                                tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=segmentation_output[4], labels=tf.image.resize_images(mask, (IMAGE_SIZE[0] // 32, IMAGE_SIZE[1] // 32))))
+
+            if self.balanced_mode:
+                loss = balanced_crossentropy_with_logits
+            else:
+                loss = tf.nn.sigmoid_cross_entropy_with_logits
+
+            segmentation_loss = tf.reduce_mean(loss(logits=logits_pixel, labels=mask)) + \
+                                tf.reduce_mean(loss(logits=segmentation_output[1], labels=tf.image.resize_images(mask, (
+                                IMAGE_SIZE[0] // 4, IMAGE_SIZE[1] // 4)))) + \
+                                tf.reduce_mean(loss(logits=segmentation_output[2], labels=tf.image.resize_images(mask, (
+                                IMAGE_SIZE[0] // 8, IMAGE_SIZE[1] // 8)))) + \
+                                tf.reduce_mean(loss(logits=segmentation_output[3], labels=tf.image.resize_images(mask, (
+                                IMAGE_SIZE[0] // 16, IMAGE_SIZE[1] // 16)))) + \
+                                tf.reduce_mean(loss(logits=segmentation_output[4], labels=tf.image.resize_images(mask, (
+                                IMAGE_SIZE[0] // 32, IMAGE_SIZE[1] // 32))))
 
         elif len(segmentation_output) == 2:
             if DATA_FORMAT == 'channels_first':
@@ -172,7 +184,6 @@ class Trainer(object):
                                                                          self.model.label: label_batch,
                                                                          self.model.is_training_seg: TRAIN_MODE_IN_TRAIN,
                                                                          self.model.is_training_dec: False})
-
                     self.tensorboard_manager.add_summary(tensorboard_result, (i - 1) * data_manager_train.num_batch + batch)
                     trainIoU.addBatch(mask_in, mask_out)
                     iter_loss.append(loss_value_batch)

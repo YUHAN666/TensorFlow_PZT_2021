@@ -125,7 +125,7 @@ class Model(object):
 
         segmentation_output, decision_in = self.build_segmentation_head(backbone_output, self.is_training_seg)
 
-        decision_output = self.build_decision_head(decision_in)  # ���ڼ���loss�����decision_loss�����¿������䵼��
+        decision_output = self.build_decision_head(decision_in)
         decision_out = tf.nn.sigmoid(decision_output, name='decision_out')
 
         if DATA_FORMAT == 'channels_first':

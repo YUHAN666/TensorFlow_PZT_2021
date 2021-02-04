@@ -3,9 +3,9 @@ import os
 import cv2
 import numpy as np
 import tensorflow as tf
-from skimage import exposure
 
 from config import *
+from image_augmentor import ImageAugmentor
 
 
 class DataManager(object):
@@ -29,10 +29,15 @@ class DataManager(object):
         else:
             self.batch_size = 1
         self.epoch_num = param["epochs"]
-        self.augmentation = param["augmentation"]
+        self.augmentor = ImageAugmentor(param)
+        # self.augmentation = param["augmentation"]
         self.next_batch = self.get_next()
         self.image_files = [x[2] for x in os.walk(self.image_root)][0]
         self.mask_files = [x[2] for x in os.walk(self.mask_root)][0]
+        if param["balanced_mode"]:
+            self.image_files = [x for x in self.image_files if "p_" in x]
+            self.mask_files = [x for x in self.mask_files if "p_" in x]
+
         self.num_batch = len(self.image_files)//self.batch_size
 
     def get_next(self):
@@ -73,44 +78,43 @@ class DataManager(object):
 
             image, mask = self.read_data(image_path, mask_path)
 
-            image = image / 255
-            mask = mask / 255
+            image = image / 255.0
+            mask = mask // 255
 
-            if self.mode == "train_segmentation" and self.augmentation:
+            if self.mode == "train_segmentation" or self.mode == "train_decision":
                 aug_random = np.random.uniform()
-                if aug_random > 0.5:
+                if aug_random > 0.9:
+                    image, mask = self.augmentor.transform_seg(image, mask)
+                    # # adjust_gamma
+                    # if np.random.uniform() > 0.7 and "adjust_gamma" in self.augmentation:
+                    #     expo = np.random.choice([0.7, 0.8, 0.9, 1.1, 1.2, 1.3])
+                    #     image = exposure.adjust_gamma(image, expo)
+                    #
+                    # # flip
+                    # if np.random.uniform() > 0.7 and "flip" in self.augmentation:
+                    #     aug_seed = np.random.randint(-1, 2)
+                    #     image = cv2.flip(image, aug_seed)
+                    #     mask = cv2.flip(mask, aug_seed)
+                    #
+                    # # rotate
+                    # if np.random.uniform() > 0.7 and "rotate" in self.augmentation:
+                    #     angle = np.random.randint(-5, 5)
+                    #     image = self.rotate(image, angle)
+                    #     mask = self.rotate(mask, angle)
+                    #
+                    # # GassianBlur
+                    # if np.random.uniform() > 0.7 and "GaussianBlur" in self.augmentation:
+                    #     image = cv2.GaussianBlur(image, (5, 5), 0)
+                    #
+                    # # shift
+                    # if np.random.uniform() > 0.7 and "shift" in self.augmentation:
+                    #     dx = np.random.randint(-5, 5)  # width*5%
+                    #     dy = np.random.randint(-5, 5)  # Height*10%
+                    #     rows, cols = image.shape[:2]
+                    #     M = np.float32([[1, 0, dx], [0, 1, dy]])  # (x,y) -> (dx,dy)
+                    #     image = cv2.warpAffine(image, M, (cols, rows))
+                    #     mask = cv2.warpAffine(mask, M, (cols, rows))
 
-                    # adjust_gamma
-                    if np.random.uniform() > 0.7 and "adjust_gamma" in self.augmentation:
-                        expo = np.random.choice([0.7, 0.8, 0.9, 1.1, 1.2, 1.3])
-                        image = exposure.adjust_gamma(image, expo)
-
-                    # flip
-                    if np.random.uniform() > 0.7 and "flip" in self.augmentation:
-                        aug_seed = np.random.randint(-1, 2)
-                        image = cv2.flip(image, aug_seed)
-                        mask = cv2.flip(mask, aug_seed)
-
-                    # rotate
-                    if np.random.uniform() > 0.7 and "rotate" in self.augmentation:
-                        angle = np.random.randint(-5, 5)
-                        image = self.rotate(image, angle)
-                        mask = self.rotate(mask, angle)
-
-                    # GassianBlur
-                    if np.random.uniform() > 0.7 and "GaussianBlur" in self.augmentation:
-                        image = cv2.GaussianBlur(image, (5, 5), 0)
-
-                    # shift
-                    if np.random.uniform() > 0.7 and "shift" in self.augmentation:
-                        dx = np.random.randint(-5, 5)  # width*5%
-                        dy = np.random.randint(-5, 5)  # Height*10%
-                        rows, cols = image.shape[:2]
-                        M = np.float32([[1, 0, dx], [0, 1, dy]])  # (x,y) -> (dx,dy)
-                        image = cv2.warpAffine(image, M, (cols, rows))
-                        mask = cv2.warpAffine(mask, M, (cols, rows))
-
-            mask = np.where(mask > 0, 1, 0)
             if len(image.shape) == 2:
                 image = (np.array(image[:, :, np.newaxis]))
             if len(mask.shape) == 2:
