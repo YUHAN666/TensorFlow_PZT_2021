@@ -18,7 +18,10 @@ class Trainer(object):
         self.epochs = param["epochs"]
         self.save_frequency = param["save_frequency"]
         self.mode = param["mode"]
+        self.anew = param["anew"]
         self.loss = param["loss"]
+        self.warm_up = param["warm_up"]
+        self.warm_up_step = param["warm_up_step"]
         self.lr_decay = param["lr_decay"]
         self.decay_rate = param["decay_rate"]
         self.decay_steps = param["decay_steps"]
@@ -31,7 +34,7 @@ class Trainer(object):
         with self.session.as_default():
 
             if self.lr_decay:
-                self.global_step = tf.Variable(0, trainable=False)
+                self.global_step = tf.Variable(1, trainable=False)
                 self.add_global = self.global_step.assign_add(1)
                 self.learning_rate = self.learning_rate_decay()
             self.summary_learning_rate = tf.summary.scalar("learning_rate", self.learning_rate)
@@ -79,22 +82,36 @@ class Trainer(object):
 
         if self.lr_decay == "exponential_decay":
             # decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps)
-            learning_rate = tf.train.exponential_decay(self.learning_rate, global_step=self.global_step,
-                                                       decay_steps=self.decay_steps, decay_rate=self.decay_rate,
-                                                       staircase=self.staircase)
+            decayed_learning_rate = tf.train.exponential_decay(self.learning_rate, global_step=self.global_step,
+                                                               decay_steps=self.decay_steps, decay_rate=self.decay_rate,
+                                                               staircase=self.staircase)
         elif self.lr_decay == "inverse_time_decay":
             # decayed_learning_rate = learning_rate / (1 + decay_rate * global_step / decay_step)
-            learning_rate = tf.train.inverse_time_decay(self.learning_rate, global_step=self.global_step,
-                                                        decay_steps=self.decay_steps, decay_rate=self.decay_rate,
-                                                        staircase=self.staircase)
+            decayed_learning_rate = tf.train.inverse_time_decay(self.learning_rate, global_step=self.global_step,
+                                                                decay_steps=self.decay_steps,
+                                                                decay_rate=self.decay_rate,
+                                                                staircase=self.staircase)
         elif self.lr_decay == "natural_exp_decay":
             # decayed_learning_rate = learning_rate * exp(-decay_rate * global_step / decay_steps)
-            learning_rate = tf.train.natural_exp_decay(self.learning_rate, global_step=self.global_step,
-                                                       decay_steps=self.decay_steps, decay_rate=self.decay_rate,
-                                                       staircase=self.staircase)
+            decayed_learning_rate = tf.train.natural_exp_decay(self.learning_rate, global_step=self.global_step,
+                                                               decay_steps=self.decay_steps, decay_rate=self.decay_rate,
+                                                               staircase=self.staircase)
+        elif self.lr_decay == "cosine_decay":
+            # cosine_decay = 0.5 * (1 + cos(pi * global_step / decay_steps))
+            # decayed = (1 - alpha) * cosine_decay + alpha
+            # decayed_learning_rate = learning_rate * decayed
+            # alpha的作用可以看作是baseline，保证lr不会低于某个值。不同alpha的影响如下：
+            decayed_learning_rate = tf.train.cosine_decay(self.learning_rate, global_step=self.global_step,
+                                                          decay_steps=self.decay_steps, alpha=0.3)
         else:
             raise ValueError("Unsupported learning rate decay strategy {}".format(self.lr_decay))
 
+        if self.warm_up and self.anew:
+            warmup_learn_rate = self.learning_rate * tf.cast(self.global_step / self.warm_up_step, tf.float32)
+            learning_rate = tf.cond(self.global_step <= self.warm_up_step, lambda: warmup_learn_rate,
+                                    lambda: decayed_learning_rate)
+        else:
+            learning_rate = decayed_learning_rate
         return learning_rate
 
     def segmentation_loss_func(self, segmentation_output, mask):
@@ -146,7 +163,11 @@ class Trainer(object):
         """ Train the segmentation part of the model """
         self.logger.info("Start training segmentation for {} epochs, {} steps per epochs, batch size is {}. Save to checkpoint every {} epochs "
                          .format(self.epochs, data_manager_train.num_batch, data_manager_train.batch_size, self.save_frequency))
-        self.logger.info("Loss: {}, Optimizer: {}, Learning_rate: {}".format(self.loss, self.optimizer, self.learning_rate))
+        if self.lr_decay:
+            lr = self.session.run([self.learning_rate])
+        else:
+            lr = self.learning_rate
+        self.logger.info("Loss: {}, Optimizer: {}, Learning_rate: {}".format(self.loss, self.optimizer, lr))
         if self.lr_decay:
             self.logger.info("Using {} strategy, decay_rate: {}， decay_steps: {}, staircase: {}".format(self.lr_decay, self.decay_rate, self.decay_steps, self.staircase))
         current_epoch = saver.step + 1

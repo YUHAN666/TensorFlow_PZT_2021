@@ -11,9 +11,9 @@ MODE = {0: "train_segmentation",    # 训练模型分割部分
 
 DefaultParam = {
     "mode": MODE[0],
-    "anew": False,                  # 是否需要新建模型，False则新建模型，True则从checkpoint中读取参数
+    "anew": True,  # 是否需要新建模型，False则新建模型，True则从checkpoint中读取参数
     "name": "p08",
-    "balanced_mode": True,  # 是否需要平衡样本
+    "balanced_mode": False,  # 是否需要平衡样本
 
     # Model param
     "momentum": 0.9,                # BatchNorm层动量参数
@@ -46,11 +46,13 @@ DefaultParam = {
     "batch_size": 4,                    # 训练batch大小
     "batch_size_inference": 2,          # 保存为pb时batch大小
     "learning_rate": 0.005,              # 学习率
-    "lr_decay": "exponential_decay",    # 学习率衰减策略   exponential_decay, inverse_time_decay, natural_exp_decay
+    "lr_decay": "exponential_decay",  # 学习率衰减策略   exponential_decay,inverse_time_decay,natural_exp_decay,cosine_decay
     "stair_case": False,                # 阶梯式衰减
     "decay_rate": 0.7,                  # 衰减率，1则不衰减
     "decay_steps": 10000,               # 衰减步数
     "loss": "cross_entropy",            # 损失函数
+    "warm_up": True,  # 预热学习率(先使用较小学习率，warm_up_step后增大至初始学习率以避免nan
+    "warm_up_step": 300,  # 预热步数
 
     # Saver param
     "input_list": ["Image"],        # pb模型输入node
@@ -70,7 +72,7 @@ DefaultParam = {
 
     # Logger & TensorBoard param
     "log_path": "./Log/",            # Log文件保存路径
-    "tensorboard_dir": "E:/CODES/TensorFlow_PZT/tensorboard/",      # TensorBoard event文件输出路径
+    "tensorboard_dir": "./tensorboard/",  # TensorBoard event文件输出路径
     "need_clear_tensorboard": True      # 是否需要清空TensorBoard输出目录下的文件
 }
 
