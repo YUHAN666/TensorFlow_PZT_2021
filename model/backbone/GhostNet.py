@@ -98,7 +98,7 @@ def ghostnet_base(inputs,
                           data_format=data_format,
                           activation=ACTIVATION, bn=True, use_bias=False)
             elif isinstance(conv_def, Bottleneck):
-                if layer_stride == 1 and in_depth == conv_def.depth:  # ���bottleneck layer��stride!=1�������������Ȳ�һ������ʹ��res�ṹ
+                if layer_stride == 1 and in_depth == conv_def.depth:
                     res = None
                 else:
                     res = GhostDepthConv(net, conv_def.kernel, stride=layer_stride, data_format=data_format,
@@ -107,7 +107,7 @@ def ghostnet_base(inputs,
                                                         name='Bottleneck{}_res_depthwise_BN'.format(i), axis=axis)
                     res = CBR(res, depth(conv_def.depth), 1, 1, training=is_training, momentum=momentum, mode=mode,
                               name='Bottleneck{}_res'.format(i), padding='same',
-                              data_format=data_format, activation=ACTIVATION, bn=True, use_bias=False)
+                              data_format=data_format, activation=None, bn=True, use_bias=False)
 
                 # Increase depth with 1x1 conv.
                 net = GhostConv('Bottleneck{}_up_pointwise'.format(i), net, depth(in_depth * conv_def.factor), 1,
@@ -134,9 +134,7 @@ def ghostnet_base(inputs,
                 # Downscale 1x1 conv.
                 net = GhostConv('Bottleneck{}_down_pointwise'.format(i), net, depth(conv_def.depth), 1, dw_code[gi],
                                 ratio_code[gi], mode=mode, strides=1, data_format=data_format, use_bias=False,
-                                is_training=is_training, activation=ACTIVATION, momentum=momentum)
-                net = tf.layers.batch_normalization(net, training=is_training,
-                                                    name='Bottleneck{}_down_pointwise_BN'.format(i), axis=axis)
+                                is_training=is_training, activation=None, momentum=momentum)
                 gi += 1
 
                 # Residual connection

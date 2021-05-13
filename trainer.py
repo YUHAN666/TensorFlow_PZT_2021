@@ -40,11 +40,24 @@ class Trainer(object):
             self.summary_learning_rate = tf.summary.scalar("learning_rate", self.learning_rate)
 
             if self.mode == "train_segmentation":
+
                 train_segment_var_list = [v for v in tf.trainable_variables() if ('backbone' in v.name) or ('segmentation' in v.name)]
+
+                # 关于tf.GraphKeys.UPDATE_OPS，这是一个tensorflow的计算图中内置的一个集合，
+                # 其中会保存一些需要在训练操作之前完成的操作，并配合tf.control_dependencies函数使用。
                 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
                 update_ops_segment = [v for v in update_ops if ('backbone' in v.name) or ('segmentation' in v.name)]
                 optimizer_segmentation = self.optimizer_func()
                 segmentation_loss = self.segmentation_loss_func(self.model.segmentation_output, self.model.mask)
+
+                """
+                 如果不在使用时添加tf.control_dependencies函数，即在训练时(training=True)每批次时只会计算当批次的mean和var，
+                 并传递给tf.nn.batch_normalization进行归一化，由于mean_update和variance_update在计算图中并不在上述操作的依赖路径上，
+                 因为并不会主动完成，也就是说，在训练时mean_update和variance_update并不会被使用到，
+                 其值一直是初始值。因此在测试阶段(training=False)使用这两个作为mean和variance并进行归一化操作，
+                 这样就会出现错误。而如果使用tf.control_dependencies函数，会在训练阶段每次训练操作执行前被动地去执行mean_update和variance_update，
+                 因此moving_mean和moving_variance会被不断更新，在测试时使用该参数也就不会出现错误。
+                """
                 with tf.control_dependencies(update_ops_segment):
                     optimize_segment = optimizer_segmentation.minimize(segmentation_loss, var_list=train_segment_var_list)
                 self.segmentation_loss = segmentation_loss

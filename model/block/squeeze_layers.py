@@ -28,6 +28,7 @@ def Squeeze_excitation_layer(input_x, out_dim, se_dim, name, data_format):
         #                              kernel_initializer=DENSE_KERNEL_INITIALIZER, name=name + '_fully_connected1')
         excitation = tf.layers.Conv2D(se_dim, (1, 1), strides=(1, 1), kernel_initializer=kernel_initializer,
                                       padding='same', data_format=data_format)(squeeze)
+
         if ACTIVATION == 'swish':
             excitation = swish(excitation, name='swish')
         elif ACTIVATION == 'mish':

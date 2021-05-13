@@ -17,6 +17,7 @@ class ImageAugmentor(object):
         image = img.copy()
         mask = msk.copy()
         flag = np.sum(mask)
+        self.augmentation_methods.clear()
 
         segmap = SegmentationMapsOnImage(mask, shape=image.shape)
 
@@ -42,7 +43,7 @@ class ImageAugmentor(object):
         mask = np.array(mask[:, :, 0], dtype=np.float64)
         auged_flag = np.sum(mask)
 
-        if flag != 0 and auged_flag == 0:
+        if flag != 0 and auged_flag == 0:  # 确认增强后目标位置是否偏出图像范围
             msk = np.where(msk > 0, 1, 0)
             return img, msk
 

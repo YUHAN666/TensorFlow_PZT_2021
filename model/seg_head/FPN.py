@@ -49,22 +49,18 @@ def bifpn_neck(features, num_channels, momentum, mode, data_format, is_training=
                 padding='same', data_format=data_format, activation=ACTIVATION, bn=True)
     # upsample
     P7_U = keras.layers.UpSampling2D(interpolation='bilinear', data_format=data_format)(P7_in)
-    # P7_U = tf.image.resize_images(P7_in, (IMAGE_SIZE[0]//16, IMAGE_SIZE[1]//16), align_corners=True, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     P6_td = keras.layers.Add()([P7_U, P6_in])
     P6_td = DepthwiseConvBlock(P6_td, kernel_size=3, strides=1, data_format=data_format, is_training=is_training,
                                name='BiFPN_U_P6')
     P6_U = keras.layers.UpSampling2D(interpolation='bilinear', data_format=data_format)(P6_td)
-    # P6_U = tf.image.resize_images(P6_td, (IMAGE_SIZE[0] // 8, IMAGE_SIZE[1] // 8), align_corners=True, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     P5_td = keras.layers.Add()([P6_U, P5_in])
     P5_td = DepthwiseConvBlock(P5_td, kernel_size=3, strides=1, data_format=data_format, is_training=is_training,
                                name='BiFPN_U_P5')
     P5_U = keras.layers.UpSampling2D(interpolation='bilinear', data_format=data_format)(P5_td)
-    # P5_U = tf.image.resize_images(P5_td, (IMAGE_SIZE[0] // 4, IMAGE_SIZE[1] // 4), align_corners=True, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     P4_td = keras.layers.Add()([P5_U, P4_in])
     P4_td = DepthwiseConvBlock(P4_td, kernel_size=3, strides=1, data_format=data_format, is_training=is_training,
                                name='BiFPN_U_P4')
     P4_U = keras.layers.UpSampling2D(interpolation='bilinear', data_format=data_format)(P4_td)
-    # P4_U = tf.image.resize_images(P4_td, (IMAGE_SIZE[0] // 2, IMAGE_SIZE[1] // 2), align_corners=True, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
     P3_out = keras.layers.Add()([P4_U, P3_in])
     P3_out = DepthwiseConvBlock(P3_out, kernel_size=3, strides=1, data_format=data_format, is_training=is_training,
                                 name='BiFPN_U_P3')

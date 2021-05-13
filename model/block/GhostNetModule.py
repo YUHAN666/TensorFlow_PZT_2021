@@ -46,7 +46,7 @@ def GhostConv(name, x, filters, kernel_size, dw_size, ratio, mode, padding='SAME
         init_channels = math.ceil(filters / ratio)
 
         x = CBR(x, init_channels, kernel_size, strides=strides, training=is_training, momentum=momentum, mode=mode,
-                name=name, padding='same', data_format=data_format, activation='relu', bn=True, use_bias=use_bias)
+                name=name, padding='same', data_format=data_format, activation=activation, bn=True, use_bias=use_bias)
 
         if ratio == 1:
             return x
